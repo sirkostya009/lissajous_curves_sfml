@@ -122,7 +122,7 @@ int main() {
 					"exit\t: exits application\n"
 					"help\t: shows this text\n"
 					"compile\t: recalculate curve\n"
-					"green-orange\t: a special render mode for you, Maryna";
+					"green-orange\t: a special render";
 			}
 			else if (query == "compile") {
 				using clock = std::chrono::steady_clock;
