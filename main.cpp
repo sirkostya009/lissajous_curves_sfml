@@ -3,7 +3,8 @@
 #include <thread>
 #include <string>
 #include <map>
-#include <SFML/Graphics.hpp> // assumes you have SFML libs preinstalled in the project
+#include <SFML/Graphics.hpp>
+#include <chrono>
 
 namespace {
 	bool greenOrange{ false };
@@ -30,7 +31,7 @@ auto makeCurve() {
 			(wWIDTH * (scale / 100.0)) * std::sin(i * alpha) + wWIDTH / 2, wHEIGHT / 2 + std::cos(i * beta) * (wHEIGHT * (scale / 100.0)) // x = sin(i * alpha) y = cos(i * beta)
 		), (greenOrange) ? sf::Color::White : sf::Color::Black));
 
-	//	std::cout << "i: " << i << "\tx: " << curve[i].position.x << "\ty: " << curve[i].position.y << "\tsin(i): " << std::sin(i) << "\tcos(4i): " << std::cos(i * 4) << '\n';
+			std::cout << "i: " << i << "\tx: " << curve[i].position.x << "\ty: " << curve[i].position.y << "\tsin(i): " << std::sin(i) << "\tcos(4i): " << std::cos(i * 4) << '\n';
 	}
 
 	return curve;
@@ -48,7 +49,7 @@ inline void drawAxes(auto& w) {
 		sf::Vertex(sf::Vector2f(wWIDTH, wHEIGHT / 2), col)
 	};
 
-	w.draw(horizontalLine,2,sf::LinesStrip);
+	w.draw(horizontalLine, 2, sf::LinesStrip);
 	w.draw(verticalLine, 2, sf::LinesStrip);
 }
 
@@ -60,31 +61,28 @@ void drawGreenOrange(auto& w) {
 		sf::Vertex(sf::Vector2f(0, wHEIGHT), sf::Color(191, 128, 0)),
 	};
 
-	w.draw(box, 4, sf::TriangleFan);
-	
-	static auto superLambda = [&](const char& index, bool& yes) {
-		if (yes) {
-			box[index].color.r--;
-			box[index].color.g++;
-		}
-		else {
-			box[index].color.r++;
-			box[index].color.g--;
-		}
-
-		if (box[index].color.g == 255 && yes)
-			yes = false;
-		else if (box[index].color.g == 64 && !yes)
-			yes = true;
-	};
-
 	static bool goGreen[]{ true, true, false, false };
 
-	for (char i{}; i < 4; ++i)
-		superLambda(i, goGreen[i]);
+	w.draw(box, 4, sf::TriangleFan);
+
+	for (char i{}; i < 4; ++i) {
+		if (goGreen[i]) {
+			box[i].color.r--;
+			box[i].color.g++;
+		}
+		else {
+			box[i].color.r++;
+			box[i].color.g--;
+		}
+
+		if (box[i].color.g == 255 && goGreen[i])
+			goGreen[i] = false;
+		else if (box[i].color.g == 64 && !goGreen[i])
+			goGreen[i] = true;
+	}
 }
 
-inline void clearInput() {
+inline void clearIOBuffers() {
 	std::cout << std::endl;
 	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 	std::cin.clear();
@@ -92,12 +90,13 @@ inline void clearInput() {
 
 int main() {
 	std::vector<sf::Vertex> c;
-	sf::RenderWindow rw(sf::VideoMode(wWIDTH, wHEIGHT), "Lissajous Curve", sf::Style::Close, sf::ContextSettings(0, 0, 8));
+	sf::RenderWindow rw(sf::VideoMode(wWIDTH, wHEIGHT), L"Lissajous Curve", sf::Style::Close, sf::ContextSettings(0, 0, 8));
 
-	
-	
+
+
 	auto console = [&]() { // making a lambda for a thread is retarded, i know, but msvc doesnt allow me to use a normal function in std::thread
 		std::string query;
+		std::cout << std::fixed;
 		while (true) {
 			std::cout << ">>> ";
 			std::cin >> query;
@@ -122,21 +121,28 @@ int main() {
 					"get\t: gets value for a specified variable\n"
 					"exit\t: exits application\n"
 					"help\t: shows this text\n"
-					"green-orange\t: a special render mode";
+					"compile\t: recalculate curve\n"
+					"green-orange\t: a special render mode for you, Maryna";
 			}
-			else if (query == "compile") c = makeCurve();
+			else if (query == "compile") {
+				using clock = std::chrono::steady_clock;
+				auto start = clock::now();
+				c = makeCurve();
+				auto elapsed = clock::now() - start;
+				std::cout << "Compiled in " << std::chrono::duration<double>(elapsed);
+			}
 			else if (query == "green-orange") {
 				greenOrange = !greenOrange;
 				c = makeCurve();
 			}
 			else std::cout << "Could not get query: " << query;
 
-			clearInput();
+			clearIOBuffers();
 		}
 	}; std::thread t(console);
-	
-	
-	
+
+
+
 	rw.setFramerateLimit(30);
 
 	for (sf::Event ev; rw.isOpen();) {
