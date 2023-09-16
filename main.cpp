@@ -145,6 +145,4 @@ int main() {
 		rw.draw(&c[0], c.size(), sf::LinesStrip);
 		rw.display();
 	}
-
-	t.join();
 }
